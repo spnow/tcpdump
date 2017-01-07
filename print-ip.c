@@ -19,18 +19,19 @@
  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#define NETDISSECT_REWORKED
+/* \summary: IP printer */
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
-#include <tcpdump-stdinc.h>
+#include <netdissect-stdinc.h>
 
 #include <string.h>
 
-#include "interface.h"
+#include "netdissect.h"
 #include "addrtoname.h"
-#include "extract.h"			/* must come after interface.h */
+#include "extract.h"
 
 #include "ip.h"
 #include "ipproto.h"
@@ -123,7 +124,7 @@ ip_finddst(netdissect_options *ndo,
 		}
 	}
 trunc:
-	UNALIGNED_MEMCPY(&retval, &ip->ip_dst.s_addr, sizeof(uint32_t));
+	UNALIGNED_MEMCPY(&retval, &ip->ip_dst, sizeof(uint32_t));
 	return retval;
 }
 
@@ -148,9 +149,9 @@ nextproto4_cksum(netdissect_options *ndo,
 	ph.len = htons((uint16_t)len);
 	ph.mbz = 0;
 	ph.proto = next_proto;
-	UNALIGNED_MEMCPY(&ph.src, &ip->ip_src.s_addr, sizeof(uint32_t));
+	UNALIGNED_MEMCPY(&ph.src, &ip->ip_src, sizeof(uint32_t));
 	if (IP_HL(ip) == 5)
-		UNALIGNED_MEMCPY(&ph.dst, &ip->ip_dst.s_addr, sizeof(uint32_t));
+		UNALIGNED_MEMCPY(&ph.dst, &ip->ip_dst, sizeof(uint32_t));
 	else
 		ph.dst = ip_finddst(ndo, ip);
 
@@ -324,7 +325,6 @@ ip_print_demux(netdissect_options *ndo,
 	       struct ip_print_demux_state *ipds)
 {
 	struct protoent *proto;
-	struct cksum_vec vec[1];
 
 again:
 	switch (ipds->nh) {
@@ -455,9 +455,7 @@ again:
 		break;
 
 	case IPPROTO_PIM:
-		vec[0].ptr = ipds->cp;
-		vec[0].len = ipds->len;
-		pim_print(ndo, ipds->cp, ipds->len, in_cksum(vec, 1));
+		pim_print(ndo, ipds->cp, ipds->len, (const u_char *)ipds->ip);
 		break;
 
 	case IPPROTO_VRRP:
@@ -582,17 +580,22 @@ ip_print(netdissect_options *ndo,
         if (ndo->ndo_vflag) {
             ND_PRINT((ndo, "(tos 0x%x", (int)ipds->ip->ip_tos));
             /* ECN bits */
-            if (ipds->ip->ip_tos & 0x03) {
-                switch (ipds->ip->ip_tos & 0x03) {
-                case 1:
-                    ND_PRINT((ndo, ",ECT(1)"));
-                    break;
-                case 2:
-                    ND_PRINT((ndo, ",ECT(0)"));
-                    break;
-                case 3:
-                    ND_PRINT((ndo, ",CE"));
-                }
+            switch (ipds->ip->ip_tos & 0x03) {
+
+            case 0:
+                break;
+
+            case 1:
+                ND_PRINT((ndo, ",ECT(1)"));
+                break;
+
+            case 2:
+                ND_PRINT((ndo, ",ECT(0)"));
+                break;
+
+            case 3:
+                ND_PRINT((ndo, ",CE"));
+                break;
             }
 
             if (ipds->ip->ip_ttl >= 1)
@@ -615,12 +618,12 @@ ip_print(netdissect_options *ndo,
 
             if ((hlen - sizeof(struct ip)) > 0) {
                 ND_PRINT((ndo, ", options ("));
-                ip_optprint(ndo, (u_char *)(ipds->ip + 1), hlen - sizeof(struct ip));
+                ip_optprint(ndo, (const u_char *)(ipds->ip + 1), hlen - sizeof(struct ip));
                 ND_PRINT((ndo, ")"));
             }
 
-	    if (!ndo->ndo_Kflag && (u_char *)ipds->ip + hlen <= ndo->ndo_snapend) {
-	        vec[0].ptr = (const uint8_t *)(void *)ipds->ip;
+	    if (!ndo->ndo_Kflag && (const u_char *)ipds->ip + hlen <= ndo->ndo_snapend) {
+	        vec[0].ptr = (const uint8_t *)(const void *)ipds->ip;
 	        vec[0].len = hlen;
 	        sum = in_cksum(vec, 1);
 		if (sum != 0) {
@@ -649,22 +652,24 @@ ip_print(netdissect_options *ndo,
 		}
 		ip_print_demux(ndo, ipds);
 	} else {
-	    /* Ultra quiet now means that all this stuff should be suppressed */
-	    if (ndo->ndo_qflag > 1) return;
+		/*
+		 * Ultra quiet now means that all this stuff should be
+		 * suppressed.
+		 */
+		if (ndo->ndo_qflag > 1)
+			return;
 
-	    /*
-	     * if this isn't the first frag, we're missing the
-	     * next level protocol header.  print the ip addr
-	     * and the protocol.
-	     */
-		if (ipds->off & 0x1fff) {
-			ND_PRINT((ndo, "%s > %s:", ipaddr_string(ndo, &ipds->ip->ip_src),
-			          ipaddr_string(ndo, &ipds->ip->ip_dst)));
-			if (!ndo->ndo_nflag && (proto = getprotobynumber(ipds->ip->ip_p)) != NULL)
-				ND_PRINT((ndo, " %s", proto->p_name));
-			else
-				ND_PRINT((ndo, " ip-proto-%d", ipds->ip->ip_p));
-		}
+		/*
+		 * This isn't the first frag, so we're missing the
+		 * next level protocol header.  print the ip addr
+		 * and the protocol.
+		 */
+		ND_PRINT((ndo, "%s > %s:", ipaddr_string(ndo, &ipds->ip->ip_src),
+		          ipaddr_string(ndo, &ipds->ip->ip_dst)));
+		if (!ndo->ndo_nflag && (proto = getprotobynumber(ipds->ip->ip_p)) != NULL)
+			ND_PRINT((ndo, " %s", proto->p_name));
+		else
+			ND_PRINT((ndo, " ip-proto-%d", ipds->ip->ip_p));
 	}
 	return;
 

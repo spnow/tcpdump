@@ -15,19 +15,22 @@
  * Original code by Hannes Gredler (hannes@juniper.net)
  */
 
+/* \summary: DLT_JUNIPER_* printers */
+
 #ifndef lint
 #else
 __RCSID("NetBSD: print-juniper.c,v 1.3 2007/07/25 06:31:32 dogcow Exp ");
 #endif
 
-#define NETDISSECT_REWORKED
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
-#include <tcpdump-stdinc.h>
+#include <netdissect-stdinc.h>
 
-#include "interface.h"
+#include <string.h>
+
+#include "netdissect.h"
 #include "addrtoname.h"
 #include "extract.h"
 #include "ppp.h"
@@ -514,7 +517,7 @@ juniper_es_print(netdissect_options *ndo,
             return l2info.header_len;
 
         p+=l2info.header_len;
-        ih = (struct juniper_ipsec_header *)p;
+        ih = (const struct juniper_ipsec_header *)p;
 
         switch (ih->type) {
         case JUNIPER_IPSEC_O_ESP_ENCRYPT_ESP_AUTHEN_TYPE:
@@ -583,7 +586,7 @@ juniper_monitor_print(netdissect_options *ndo,
             return l2info.header_len;
 
         p+=l2info.header_len;
-        mh = (struct juniper_monitor_header *)p;
+        mh = (const struct juniper_monitor_header *)p;
 
         if (ndo->ndo_eflag)
             ND_PRINT((ndo, "service-id %u, iif %u, pkt-type %u: ",
@@ -617,7 +620,7 @@ juniper_services_print(netdissect_options *ndo,
             return l2info.header_len;
 
         p+=l2info.header_len;
-        sh = (struct juniper_services_header *)p;
+        sh = (const struct juniper_services_header *)p;
 
         if (ndo->ndo_eflag)
             ND_PRINT((ndo, "service-id %u flags 0x%02x service-set-id 0x%04x iif %u: ",
@@ -818,6 +821,7 @@ juniper_mfr_print(netdissect_options *ndo,
 {
         struct juniper_l2info_t l2info;
 
+        memset(&l2info, 0, sizeof(l2info));
         l2info.pictype = DLT_JUNIPER_MFR;
         if (juniper_parse_header(ndo, p, h, &l2info) == 0)
             return l2info.header_len;
@@ -920,7 +924,7 @@ u_int
 juniper_atm1_print(netdissect_options *ndo,
                    const struct pcap_pkthdr *h, register const u_char *p)
 {
-        uint16_t extracted_ethertype;
+        int llc_hdrlen;
 
         struct juniper_l2info_t l2info;
 
@@ -938,8 +942,8 @@ juniper_atm1_print(netdissect_options *ndo,
         if (EXTRACT_24BITS(p) == 0xfefe03 || /* NLPID encaps ? */
             EXTRACT_24BITS(p) == 0xaaaa03) { /* SNAP encaps ? */
 
-            if (llc_print(ndo, p, l2info.length, l2info.caplen, NULL, NULL,
-                          &extracted_ethertype) != 0)
+            llc_hdrlen = llc_print(ndo, p, l2info.length, l2info.caplen, NULL, NULL);
+            if (llc_hdrlen > 0)
                 return l2info.header_len;
         }
 
@@ -969,7 +973,7 @@ u_int
 juniper_atm2_print(netdissect_options *ndo,
                    const struct pcap_pkthdr *h, register const u_char *p)
 {
-        uint16_t extracted_ethertype;
+        int llc_hdrlen;
 
         struct juniper_l2info_t l2info;
 
@@ -987,8 +991,8 @@ juniper_atm2_print(netdissect_options *ndo,
         if (EXTRACT_24BITS(p) == 0xfefe03 || /* NLPID encaps ? */
             EXTRACT_24BITS(p) == 0xaaaa03) { /* SNAP encaps ? */
 
-            if (llc_print(ndo, p, l2info.length, l2info.caplen, NULL, NULL,
-                          &extracted_ethertype) != 0)
+            llc_hdrlen = llc_print(ndo, p, l2info.length, l2info.caplen, NULL, NULL);
+            if (llc_hdrlen > 0)
                 return l2info.header_len;
         }
 
@@ -1019,8 +1023,8 @@ juniper_atm2_print(netdissect_options *ndo,
  * a juniper router if the payload data is encapsulated using PPP */
 static int
 juniper_ppp_heuristic_guess(netdissect_options *ndo,
-                            register const u_char *p, u_int length) {
-
+                            register const u_char *p, u_int length)
+{
     switch(EXTRACT_16BITS(p)) {
     case PPP_IP :
     case PPP_OSI :
@@ -1033,10 +1037,8 @@ juniper_ppp_heuristic_guess(netdissect_options *ndo,
     case PPP_PAP :
     case PPP_CHAP :
     case PPP_ML :
-#ifdef INET6
     case PPP_IPV6 :
     case PPP_IPV6CP :
-#endif
         ppp_print(ndo, p, length);
         break;
 
@@ -1049,8 +1051,8 @@ juniper_ppp_heuristic_guess(netdissect_options *ndo,
 
 static int
 ip_heuristic_guess(netdissect_options *ndo,
-                   register const u_char *p, u_int length) {
-
+                   register const u_char *p, u_int length)
+{
     switch(p[0]) {
     case 0x45:
     case 0x46:
@@ -1091,8 +1093,8 @@ ip_heuristic_guess(netdissect_options *ndo,
 }
 
 static int
-juniper_read_tlv_value(const u_char *p, u_int tlv_type, u_int tlv_len) {
-
+juniper_read_tlv_value(const u_char *p, u_int tlv_type, u_int tlv_len)
+{
    int tlv_value;
 
    /* TLVs < 128 are little endian encoded */
@@ -1139,8 +1141,8 @@ juniper_read_tlv_value(const u_char *p, u_int tlv_type, u_int tlv_len) {
 
 static int
 juniper_parse_header(netdissect_options *ndo,
-                     const u_char *p, const struct pcap_pkthdr *h, struct juniper_l2info_t *l2info) {
-
+                     const u_char *p, const struct pcap_pkthdr *h, struct juniper_l2info_t *l2info)
+{
     const struct juniper_cookie_table_t *lp = juniper_cookie_table;
     u_int idx, jnx_ext_len, jnx_header_len = 0;
     uint8_t tlv_type,tlv_len;

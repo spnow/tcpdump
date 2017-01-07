@@ -12,23 +12,22 @@
  * LIMITATION, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE.
  *
- * support for the IEEE Link Discovery Protocol as per 802.1AB
- *
  * Original code by Hannes Gredler (hannes@juniper.net)
  * IEEE and TIA extensions by Carles Kishimoto <carles.kishimoto@gmail.com>
  * DCBX extensions by Kaladhar Musunuru <kaladharm@sourceforge.net>
  */
 
-#define NETDISSECT_REWORKED
+/* \summary: IEEE 802.1ab Link Layer Discovery Protocol (LLDP) printer */
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
-#include <tcpdump-stdinc.h>
+#include <netdissect-stdinc.h>
 
 #include <stdio.h>
 
-#include "interface.h"
+#include "netdissect.h"
 #include "extract.h"
 #include "addrtoname.h"
 #include "af.h"
@@ -1265,8 +1264,8 @@ lldp_private_dcbx_print(netdissect_options *ndo,
 }
 
 static char *
-lldp_network_addr_print(netdissect_options *ndo, const u_char *tptr, u_int len) {
-
+lldp_network_addr_print(netdissect_options *ndo, const u_char *tptr, u_int len)
+{
     uint8_t af;
     static char buf[BUFSIZE];
     const char * (*pfunc)(netdissect_options *, const u_char *);
@@ -1279,15 +1278,15 @@ lldp_network_addr_print(netdissect_options *ndo, const u_char *tptr, u_int len) 
     case AFNUM_INET:
         if (len < 4)
           return NULL;
+        /* This cannot be assigned to ipaddr_string(), which is a macro. */
         pfunc = getname;
         break;
-#ifdef INET6
     case AFNUM_INET6:
         if (len < 16)
           return NULL;
+        /* This cannot be assigned to ip6addr_string(), which is a macro. */
         pfunc = getname6;
         break;
-#endif
     case AFNUM_802:
         if (len < 6)
           return NULL;
@@ -1311,8 +1310,8 @@ lldp_network_addr_print(netdissect_options *ndo, const u_char *tptr, u_int len) 
 
 static int
 lldp_mgmt_addr_tlv_print(netdissect_options *ndo,
-                         const u_char *pptr, u_int len) {
-
+                         const u_char *pptr, u_int len)
+{
     uint8_t mgmt_addr_len, intf_num_subtype, oid_len;
     const u_char *tptr;
     u_int tlen;
@@ -1373,8 +1372,8 @@ lldp_mgmt_addr_tlv_print(netdissect_options *ndo,
 
 void
 lldp_print(netdissect_options *ndo,
-           register const u_char *pptr, register u_int len) {
-
+           register const u_char *pptr, register u_int len)
+{
     uint8_t subtype;
     uint16_t tlv, cap, ena_cap;
     u_int oui, tlen, hexdump, tlv_type, tlv_len;

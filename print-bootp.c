@@ -17,20 +17,19 @@
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR IMPLIED
  * WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
- *
- * Format and print bootp packets.
  */
 
-#define NETDISSECT_REWORKED
+/* \summary: BOOTP and IPv4 DHCP printer */
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
-#include <tcpdump-stdinc.h>
+#include <netdissect-stdinc.h>
 
 #include <string.h>
 
-#include "interface.h"
+#include "netdissect.h"
 #include "addrtoname.h"
 #include "extract.h"
 
@@ -997,7 +996,7 @@ rfc1048_print(netdissect_options *ndo,
 						break;
 					}
 					if (len < suboptlen) {
-						ND_PRINT((ndo, "ERROR: malformed option"));
+						ND_PRINT((ndo, "ERROR: invalid option"));
 						bp += len;
 						len = 0;
 						break;

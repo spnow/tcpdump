@@ -1,10 +1,26 @@
-Thursday Nov. 20, 2014 guy@alum.mit.edu
-  Summary for 5.0.0 tcpdump release
+Tuesday April 14, 2015 guy@alum.mit.edu
+  Summary for 4.8.0 tcpdump release
+	Fix "-x" for Apple PKTAP and PPI packets
+
+Friday April 10, 2015 guy@alum.mit.edu
+  Summary for 4.7.4 tcpdump release
+	RPKI to Router Protocol: Fix Segmentation Faults and other problems
+	RPKI to Router Protocol: print strings with fn_printn()
+	wb: fix some bounds checks
+
+Wednesday March 11, 2015 mcr@sandelman.ca
+  Summary for 4.7.3 tcpdump release
+	Capsicum fixes for FreeBSD 10
+
+Tuesday March 10, 2015 mcr@sandelman.ca
+  Summary for 4.7.2 tcpdump release
 	DCCP: update Packet Types with RFC4340/IANA names
+        fixes for CVE-2015-0261: IPv6 mobility header check issue
+        fixes for CVE-2015-2153, 2154, 2155: kday packets
 
 Friday Nov. 12, 2014 guy@alum.mit.edu
   Summary for 4.7.0 tcpdump release
-        changes to hex printing of CDP packets	
+        changes to hex printing of CDP packets
 	Fix PPI printing
 	Radius: update Packet Type Codes and Attribute Types with RFC/IANA names
 	Add a routine to print "text protocols", and add FTP/HTTP/SMTP/RTSP support.
@@ -14,6 +30,7 @@ Friday Nov. 12, 2014 guy@alum.mit.edu
 	new bounds checks for a number of protocols
 	split netflow 1,6, and 6 dissector up.
 	added geneve dissector
+        CVE-2014-9140 PPP dissector fixed.
 
 Tuesday  Sep.  2, 2014 mcr@sandelman.ca
   Summary for 4.6.2 tcpdump release
@@ -451,10 +468,10 @@ Wed.   November 12, 2003. mcr@sandelman.ottawa.on.ca. Summary for 3.8 release
 
 Tuesday, February 25, 2003. fenner@research.att.com.  3.7.2 release
 
-	Fixed infinite loop when parsing malformed isakmp packets.
+	Fixed infinite loop when parsing invalid isakmp packets.
 	 (reported by iDefense; already fixed in CVS)
-	Fixed infinite loop when parsing malformed BGP packets.
-	Fixed buffer overflow with certain malformed NFS packets.
+	Fixed infinite loop when parsing invalid BGP packets.
+	Fixed buffer overflow with certain invalid NFS packets.
 	Pretty-print unprintable network names in 802.11 printer.
 	Handle truncated nbp (appletalk) packets.
 	Updated DHCPv6 printer to match draft-ietf-dhc-dhcpv6-22.txt

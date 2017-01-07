@@ -15,14 +15,15 @@
  * Original code by Ola Martin Lykkja (ola.lykkja@q-free.com)
  */
 
-#define NETDISSECT_REWORKED
+/* \summary: Communication access for land mobiles (CALM) printer */
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
-#include <tcpdump-stdinc.h>
+#include <netdissect-stdinc.h>
 
-#include "interface.h"
+#include "netdissect.h"
 #include "addrtoname.h"
 
 /*

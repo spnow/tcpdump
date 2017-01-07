@@ -19,20 +19,21 @@
  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#define NETDISSECT_REWORKED
+/* \summary: Address Resolution Protocol (ARP) printer */
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
-#include <tcpdump-stdinc.h>
+#include <netdissect-stdinc.h>
 
 #include <string.h>
 
-#include "interface.h"
+#include "netdissect.h"
 #include "addrtoname.h"
 #include "ether.h"
 #include "ethertype.h"
-#include "extract.h"			/* must come after interface.h */
+#include "extract.h"
 
 static const char tstr[] = "[|ARP]";
 
@@ -389,8 +390,8 @@ arp_print(netdissect_options *ndo,
 
 	case ARPOP_INVREPLY:
 		ND_PRINT((ndo,"%s at %s",
-			  linkaddr_string(ndo, THA(ap), linkaddr, HRD_LEN(ap)),
-			  ipaddr_string(ndo, TPA(ap))));
+			  linkaddr_string(ndo, SHA(ap), linkaddr, HRD_LEN(ap)),
+			  ipaddr_string(ndo, SPA(ap))));
 		break;
 
 	default:

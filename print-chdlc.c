@@ -19,14 +19,15 @@
  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#define NETDISSECT_REWORKED
+/* \summary: Cisco HDLC printer */
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
-#include <tcpdump-stdinc.h>
+#include <netdissect-stdinc.h>
 
-#include "interface.h"
+#include "netdissect.h"
 #include "addrtoname.h"
 #include "ethertype.h"
 #include "extract.h"
@@ -56,7 +57,8 @@ chdlc_if_print(netdissect_options *ndo, const struct pcap_pkthdr *h, register co
 }
 
 u_int
-chdlc_print(netdissect_options *ndo, register const u_char *p, u_int length) {
+chdlc_print(netdissect_options *ndo, register const u_char *p, u_int length)
+{
 	u_int proto;
 
 	proto = EXTRACT_16BITS(&p[2]);
